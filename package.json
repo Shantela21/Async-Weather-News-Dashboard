@@ -1,0 +1,23 @@
+{
+  "name": "async-weather-news-dashboard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shantela21/Async-Weather-News-Dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Shantela21/Async-Weather-News-Dashboard/issues"
+  },
+  "homepage": "https://github.com/Shantela21/Async-Weather-News-Dashboard#readme",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
