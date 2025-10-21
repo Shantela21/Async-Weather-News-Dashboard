@@ -1,9 +1,9 @@
 import { log } from 'console';
-import http from 'http';
+import http from 'https';
  
 function fetchWeatherData(city: string, callback: (data: any) => void): void {
     const apiKey = 'YOUR_API_KEY';
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&hourly=temperature_2m`;
 
     http.get(url, (res) => {
         let data = '';
@@ -17,11 +17,12 @@ function fetchWeatherData(city: string, callback: (data: any) => void): void {
         console.error(err);
         callback(null);
     }); 
+
 }
 
 function fetchNews(callback: (data: any) => void): void {
     const apiKey = 'YOUR_API_KEY';
-    const url = `https://dummyjson.com/posts+${apiKey}`;
+    const url = `https://dummyjson.com/posts`;
     http.get(url, (res) => {
         let data = '';
         res.on('data', (chunk) => {
@@ -36,6 +37,16 @@ function fetchNews(callback: (data: any) => void): void {
     });
 }
 
+fetchWeatherData('London', (weatherData) => {
+    if (weatherData) {
+        log('Weather Data:', weatherData);
+        fetchNews((newsData) => {
+            if (newsData) {
+                log('News Data:', newsData);
+            }
+        });
+    }
+});
 
 
 // Example usage:
