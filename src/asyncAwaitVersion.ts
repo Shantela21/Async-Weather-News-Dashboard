@@ -1,6 +1,6 @@
 import http from 'https';
 
-async function geocodeCity(city: string): Promise<{lat: number, lon: number} | null> {
+async function geocodeCity(city: string): Promise<{lat: number, lon: number} | {error: string}> {
     return new Promise((resolve, reject) => {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`;
         const options = {
@@ -14,27 +14,30 @@ async function geocodeCity(city: string): Promise<{lat: number, lon: number} | n
                 data += chunk;
             });
             res.on('end', () => {
-                const results = JSON.parse(data);
-                if (results.length > 0) {
-                    const lat = parseFloat(results[0].lat);
-                    const lon = parseFloat(results[0].lon);
-                    resolve({lat, lon});
-                } else {
-                    resolve(null);
+                try {
+                    const results = JSON.parse(data);
+                    if (results.length > 0) {
+                        const lat = parseFloat(results[0].lat);
+                        const lon = parseFloat(results[0].lon);
+                        resolve({lat, lon});
+                    } else {
+                        resolve({error: `Error: Location "${city}" not found`});
+                    }
+                } catch (parseError) {
+                    resolve({error: 'Error: Failed to parse geocoding response'});
                 }
             });
         }).on('error', (err) => {
-            console.error('Geocoding error:', err);
-            reject(err);
+            resolve({error: `Error: Geocoding service unavailable - ${err.message}`});
         });
     });
 }
 
 // Refactor Promise code to use async/await
-export async function fetchWeatherData(city: string): Promise<{data: any, cityName: string}> {
+export async function fetchWeatherData(city: string): Promise<{data: any, cityName: string, error?: string}> {
     const coords = await geocodeCity(city);
-    if (!coords) {
-        return {data: null, cityName: city};
+    if ('error' in coords) {
+        return {data: null, cityName: city, error: coords.error};
     }
     const apiKey = 'YOUR_API_KEY';
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`;
@@ -45,11 +48,14 @@ export async function fetchWeatherData(city: string): Promise<{data: any, cityNa
                 data += chunk;
             });
             res.on('end', () => {
-                resolve({data: JSON.parse(data), cityName: city});
+                try {
+                    resolve({data: JSON.parse(data), cityName: city});
+                } catch (parseError) {
+                    resolve({data: null, cityName: city, error: 'Error: Failed to parse weather data'});
+                }
             });
         }).on('error', (err) => {
-            console.error(err);
-            reject(err);
+            resolve({data: null, cityName: city, error: `Error: Weather service unavailable - ${err.message}`});
         });
     });
 }
@@ -77,21 +83,25 @@ async function displayData() {
     try {
         const city = process.argv[2] || 'Durban';
         const result = await fetchWeatherData(city);
-        if (result.data) {
+        if (result.error) {
+            console.log(result.error);
+        } else if (result.data) {
             const weather = result.data.current_weather;
             console.log(`Weather in ${result.cityName}:\nTemperature: ${weather.temperature}°C\nWindspeed: ${weather.windspeed} km/h\nTime: ${weather.time}`);
         } else {
-            console.log(`Could not fetch weather data for ${result.cityName}`);
+            console.log(`Error: Could not fetch weather data for ${result.cityName}`);
         }
         const newsData = await fetchNews();
         if (newsData && newsData.posts) {
-            console.log('News Data:');
+            console.log('News Headlines:');
             newsData.posts.slice(0, 4).forEach((post: any, index: number) => {
                 console.log(`${index + 1}. ${post.title}`);
             });
+        } else {
+            console.log('Error: Failed to fetch news data');
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error:', error instanceof Error ? error.message : error);
     }
 }
 

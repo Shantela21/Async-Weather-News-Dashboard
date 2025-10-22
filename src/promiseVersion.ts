@@ -1,6 +1,6 @@
 import http from 'https';
 
-function geocodeCity(city: string): Promise<{lat: number, lon: number} | null> {
+function geocodeCity(city: string): Promise<{lat: number, lon: number} | {error: string}> {
     return new Promise((resolve, reject) => {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`;
         const options = {
@@ -14,26 +14,29 @@ function geocodeCity(city: string): Promise<{lat: number, lon: number} | null> {
                 data += chunk;
             });
             res.on('end', () => {
-                const results = JSON.parse(data);
-                if (results.length > 0) {
-                    const lat = parseFloat(results[0].lat);
-                    const lon = parseFloat(results[0].lon);
-                    resolve({lat, lon});
-                } else {
-                    resolve(null);
+                try {
+                    const results = JSON.parse(data);
+                    if (results.length > 0) {
+                        const lat = parseFloat(results[0].lat);
+                        const lon = parseFloat(results[0].lon);
+                        resolve({lat, lon});
+                    } else {
+                        resolve({error: `Error: Location "${city}" not found`});
+                    }
+                } catch (parseError) {
+                    resolve({error: 'Error: Failed to parse geocoding response'});
                 }
             });
         }).on('error', (err) => {
-            console.error('Geocoding error:', err);
-            reject(err);
+            resolve({error: `Error: Geocoding service unavailable - ${err.message}`});
         });
     });
 }
 
-export function fetchWeatherData(city: string): Promise<{data: any, cityName: string}> {
+export function fetchWeatherData(city: string): Promise<{data: any, cityName: string, error?: string}> {
     return geocodeCity(city).then(coords => {
-        if (!coords) {
-            return {data: null, cityName: city};
+        if ('error' in coords) {
+            return {data: null, cityName: city, error: coords.error};
         }
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`;
 
@@ -44,11 +47,14 @@ export function fetchWeatherData(city: string): Promise<{data: any, cityName: st
                     data += chunk;
                 });
                 res.on('end', () => {
-                    resolve({data: JSON.parse(data), cityName: city});
+                    try {
+                        resolve({data: JSON.parse(data), cityName: city});
+                    } catch (parseError) {
+                        resolve({data: null, cityName: city, error: 'Error: Failed to parse weather data'});
+                    }
                 });
             }).on('error', (err) => {
-                console.error(err);
-                reject(err);
+                resolve({data: null, cityName: city, error: `Error: Weather service unavailable - ${err.message}`});
             });
         });
     });
@@ -78,50 +84,60 @@ const city = process.argv[2] || 'Durban';
 
 fetchWeatherData(city)
     .then((result) => {
+        if (result.error) {
+            console.log(result.error);
+            return fetchNews();
+        }
         if (result.data) {
             const weather = result.data.current_weather;
             console.log(`Weather in ${result.cityName}:\nTemperature: ${weather.temperature}°C\nWindspeed: ${weather.windspeed} km/h\nTime: ${weather.time}`);
         } else {
-            console.log(`Could not fetch weather data for ${result.cityName}`);
+            console.log(`Error: Could not fetch weather data for ${result.cityName}`);
         }
         return fetchNews();
     })
     .then((newsData) => {
         if (newsData && newsData.posts) {
-            console.log('News Data:');
+            console.log('News Headlines:');
             newsData.posts.slice(0, 4).forEach((post: any, index: number) => {
                 console.log(`${index + 1}. ${post.title}`);
             });
+        } else {
+            console.log('Error: Failed to fetch news data');
         }
     })
     .catch((error) => {
-        console.error('Error:', error);
+        console.error('Error:', error.message || error);
     });
 
     // Implement Promise.all() and Promise.race() examples
 Promise.all([fetchWeatherData(city), fetchNews()])
     .then(([weatherResult, newsData]) => {
-        if (weatherResult.data) {
+        if (weatherResult.error) {
+            console.log(`Promise.all - ${weatherResult.error}`);
+        } else if (weatherResult.data) {
             const weather = weatherResult.data.current_weather;
             console.log(`Promise.all - Weather in ${weatherResult.cityName}:\nTemperature: ${weather.temperature}°C\nWindspeed: ${weather.windspeed} km/h\nTime: ${weather.time}`);
         } else {
-            console.log(`Promise.all - Could not fetch weather data for ${weatherResult.cityName}`);
+            console.log(`Promise.all - Error: Could not fetch weather data for ${weatherResult.cityName}`);
         }
         if (newsData && newsData.posts) {
-            console.log('Promise.all - News Data:');
+            console.log('Promise.all - News Headlines:');
             newsData.posts.slice(0, 4).forEach((post: any, index: number) => {
                 console.log(`${index + 1}. ${post.title}`);
             });
+        } else {
+            console.log('Promise.all - Error: Failed to fetch news data');
         }
     })
     .catch((error) => {
-        console.error('Promise.all Error:', error);
+        console.error('Promise.all Error:', error.message || error);
     });
 Promise.race([fetchWeatherData(city), fetchNews()])
     .then((firstData) => {
         console.log('Promise.race - First Data:', firstData);
     })
     .catch((error) => {
-        console.error('Promise.race Error:', error);
+        console.error('Promise.race Error:', error.message || error);
     });
     

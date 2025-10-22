@@ -94,3 +94,22 @@ Provides fake post data for testing.
   * Async/Await with error handling
 
 * Includes Promise.all() and Promise.race() examples.
+
+## 🧰 Scripts
+| Command         | Description                                         |
+| --------------- | --------------------------------------------------- |
+| `npm start`     | Runs the callback version                           |
+| `npm run dev`   | Watches for file changes and restarts automatically |
+| `npm run build` | Compiles TypeScript files to JavaScript             |
+
+## 📘 Technologies
+* Node.js
+
+* TypeScript
+
+* HTTPS module
+
+* Nodemon (for auto-restarts during development)
+
+## 👩‍💻 Author
+**Shantela Noyila**
