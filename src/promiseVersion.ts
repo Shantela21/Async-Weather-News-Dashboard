@@ -87,7 +87,12 @@ fetchWeatherData(city)
         return fetchNews();
     })
     .then((newsData) => {
-        console.log('News Data:', newsData);
+        if (newsData && newsData.posts) {
+            console.log('News Data:');
+            newsData.posts.slice(0, 4).forEach((post: any, index: number) => {
+                console.log(`${index + 1}. ${post.title}`);
+            });
+        }
     })
     .catch((error) => {
         console.error('Error:', error);
@@ -102,7 +107,12 @@ Promise.all([fetchWeatherData(city), fetchNews()])
         } else {
             console.log(`Promise.all - Could not fetch weather data for ${weatherResult.cityName}`);
         }
-        console.log('Promise.all - News Data:', newsData);
+        if (newsData && newsData.posts) {
+            console.log('Promise.all - News Data:');
+            newsData.posts.slice(0, 4).forEach((post: any, index: number) => {
+                console.log(`${index + 1}. ${post.title}`);
+            });
+        }
     })
     .catch((error) => {
         console.error('Promise.all Error:', error);

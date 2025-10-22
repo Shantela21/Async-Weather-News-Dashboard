@@ -76,8 +76,11 @@ fetchWeatherData(city, (weatherData, cityName) => {
         const weather = weatherData.current_weather;
         log(`Weather in ${cityName}:\nTemperature: ${weather.temperature}°C\nWindspeed: ${weather.windspeed} km/h\nTime: ${weather.time}`);
         fetchNews((newsData) => {
-            if (newsData) {
-                log('News Data:', newsData);
+            if (newsData && newsData.posts) {
+                log('News Data:');
+                newsData.posts.slice(0, 4).forEach((post: any, index: number) => {
+                    log(`${index + 1}. ${post.title}`);
+                });
             }
         });
     } else {
